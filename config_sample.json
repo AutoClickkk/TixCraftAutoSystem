@@ -1,0 +1,14 @@
+{
+    "chrome_driver_path": "./assets/chromedriver/win64-130.0.6723.70.exe",
+    "sleep": {
+        "max_seconds": 0.5,
+        "min_seconds": 0.2
+    },
+    "game_id": "24_straykids",
+    "number_of_ticket" : 2,
+
+    "open_for_purchase_datetime": "2024/11/01-13:00:00",
+    "show_time_text_contains": "2024/11/03 (日) 18:00",
+    "area_price_text_contains": "4800",
+    "notification_emails": ["xxx@gmail.com"]
+}

@@ -1,0 +1,14 @@
+{
+    "chrome_driver_path": "./assets/chromedriver/chromedriver",
+    "sleep": {
+        "max_seconds": 0.5,
+        "min_seconds": 0.2
+    },
+    "game_id": "24_lioneers",
+    "number_of_ticket" : 2,
+
+    "open_for_purchase_datetime": "2024/11/01-22:40:00",
+    "show_time_text_contains": "2024/11/09 (六) 17:00",
+    "area_price_text_contains": null,
+    "notification_emails": ["xxx@gmail.com"]
+}

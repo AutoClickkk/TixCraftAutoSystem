@@ -1,4 +1,4 @@
-## dev
+## TixCraftAutoSystem
 ### 配置 .env  
 ```bash
 # Google SMTP (如果需要完成後通知的話)

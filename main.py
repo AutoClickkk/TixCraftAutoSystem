@@ -1,19 +1,19 @@
 from src.services import datacenter, grabtickets
 from undetected_chromedriver import Chrome, ChromeOptions
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import ssl
+import urllib.request
+ssl._create_default_https_context = ssl._create_unverified_context
 
 data_center = datacenter.DataCenter()
 grab_tickets = grabtickets.GrabTickets()
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-
 def get_web_deriver(config: datacenter.Config) -> WebDriver:
-    options = webdriver.ChromeOptions()
-    # options.add_argument("--headless")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager(driver_version="130.0.6723.92").install()), options=options)
-    return driver
+    options = ChromeOptions()
+    # options.add_argument("--headless")  
+    return Chrome(service=Service(ChromeDriverManager(driver_version="130.0.6723.92").install()), options=options)
 
 def main() -> None:
     config = data_center.get_config()

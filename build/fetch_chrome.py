@@ -11,10 +11,21 @@ import os
 import platform
 import shutil
 import stat
+import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
+
+
+# Force UTF-8 stdout/stderr so prints survive on Windows (default cp1252 chokes on non-ASCII).
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 
 CFT_INDEX = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
@@ -31,25 +42,48 @@ def detect_platform() -> str:
 
 
 def download(url: str) -> bytes:
-    print(f"  ↓ {url}")
+    print(f"  -> {url}")
     with urllib.request.urlopen(url, timeout=120) as resp:
         return resp.read()
 
 
 def extract_zip(blob: bytes, dest: Path) -> Path:
+    """Extract a zip blob. On Unix, use the system `unzip` so that symbolic
+    links and exec bits inside Chrome.app are preserved (Python's zipfile
+    silently turns symlinks into regular files containing the link target,
+    which breaks Chrome's Framework bundle)."""
     dest.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(io.BytesIO(blob)) as zf:
-        zf.extractall(dest)
-    # Restore +x on POSIX since zipfile drops perms
-    if os.name != "nt":
-        for root, _, files in os.walk(dest):
-            for f in files:
-                p = Path(root) / f
-                if f in ("chrome", "chromedriver") or p.suffix in (".app", ""):
-                    try:
-                        p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-                    except Exception:
-                        pass
+
+    if os.name != "nt" and shutil.which("unzip"):
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+            tmp.write(blob)
+            tmp_path = tmp.name
+        try:
+            subprocess.run(
+                ["unzip", "-q", "-o", tmp_path, "-d", str(dest)],
+                check=True,
+            )
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+    else:
+        with zipfile.ZipFile(io.BytesIO(blob)) as zf:
+            zf.extractall(dest)
+        # Python's zipfile drops perm bits — restore +x on known executables.
+        if os.name != "nt":
+            for root, _, files in os.walk(dest):
+                for f in files:
+                    p = Path(root) / f
+                    if f in ("chrome", "chromedriver"):
+                        try:
+                            p.chmod(
+                                p.stat().st_mode
+                                | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                            )
+                        except Exception:
+                            pass
     return dest
 
 

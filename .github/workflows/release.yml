@@ -20,6 +20,7 @@ jobs:
             asset_name: 準點搶-mac-arm64.zip
             artifact_path: dist/準點搶.app
             post_build: |
+              mkdir -p "dist/準點搶.app/Contents/Resources/assets/chrome"
               cp -R "assets/chrome/mac-arm64" "dist/準點搶.app/Contents/Resources/assets/chrome/mac-arm64"
               xattr -dr com.apple.quarantine "dist/準點搶.app" 2>/dev/null || true
             archive_cmd: |
@@ -29,6 +30,7 @@ jobs:
             asset_name: 準點搶-mac-x64.zip
             artifact_path: dist/準點搶.app
             post_build: |
+              mkdir -p "dist/準點搶.app/Contents/Resources/assets/chrome"
               cp -R "assets/chrome/mac-x64" "dist/準點搶.app/Contents/Resources/assets/chrome/mac-x64"
               xattr -dr com.apple.quarantine "dist/準點搶.app" 2>/dev/null || true
             archive_cmd: |

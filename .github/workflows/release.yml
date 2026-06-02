@@ -1,0 +1,109 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14         # arm64 Apple Silicon
+            chrome_plat: mac-arm64
+            asset_name: 準點搶-mac-arm64.zip
+            artifact_path: dist/準點搶.app
+            post_build: |
+              cp -R "assets/chrome/mac-arm64" "dist/準點搶.app/Contents/Resources/assets/chrome/mac-arm64"
+              xattr -dr com.apple.quarantine "dist/準點搶.app" 2>/dev/null || true
+            archive_cmd: |
+              cd dist && zip -qry "準點搶-mac-arm64.zip" 準點搶.app
+          - os: macos-13         # x64 Intel
+            chrome_plat: mac-x64
+            asset_name: 準點搶-mac-x64.zip
+            artifact_path: dist/準點搶.app
+            post_build: |
+              cp -R "assets/chrome/mac-x64" "dist/準點搶.app/Contents/Resources/assets/chrome/mac-x64"
+              xattr -dr com.apple.quarantine "dist/準點搶.app" 2>/dev/null || true
+            archive_cmd: |
+              cd dist && zip -qry "準點搶-mac-x64.zip" 準點搶.app
+          - os: windows-2022
+            chrome_plat: win64
+            asset_name: 準點搶-win-x64.zip
+            artifact_path: dist/準點搶.exe
+            post_build: |
+              echo "Windows uses one-file mode; Chrome is embedded in 準點搶.exe."
+            archive_cmd: |
+              cd dist
+              powershell -Command "Compress-Archive -Path '準點搶.exe' -DestinationPath '準點搶-win-x64.zip' -Force"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Stamp version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python - "$VERSION" <<'PY'
+          import json, sys, pathlib
+          version = sys.argv[1]
+          p = pathlib.Path("version.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          data["version"] = version
+          data["github_repo"] = "${{ github.repository }}"
+          p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          PY
+          cat version.json
+
+      - name: Fetch Chrome for Testing
+        shell: bash
+        run: python build/fetch_chrome.py --platform ${{ matrix.chrome_plat }}
+
+      - name: Build
+        shell: bash
+        run: pyinstaller --noconfirm --clean --workpath build/work --distpath dist build/tixcraft.spec
+
+      - name: Copy Chrome into bundle
+        shell: bash
+        run: ${{ matrix.post_build }}
+
+      - name: Verify artifact exists
+        shell: bash
+        run: |
+          ls -la dist/
+          test -e "${{ matrix.artifact_path }}"
+
+      - name: Archive artifact
+        shell: bash
+        run: ${{ matrix.archive_cmd }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/${{ matrix.asset_name }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true

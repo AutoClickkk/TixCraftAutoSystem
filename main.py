@@ -1,43 +1,40 @@
-from src.services import datacenter, grabtickets
-from undetected_chromedriver import Chrome, ChromeOptions
-from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-import ssl
-import urllib.request
-ssl._create_default_https_context = ssl._create_unverified_context
+"""CLI entry point. Run `python main.py` to use the terminal flow.
+For the GUI, run `python gui.py` instead."""
+from __future__ import annotations
 
-data_center = datacenter.DataCenter()
-grab_tickets = grabtickets.GrabTickets()
+from dotenv import load_dotenv
 
-def get_web_deriver(config: datacenter.Config) -> WebDriver:
-    options = ChromeOptions()
-    # options.add_argument("--headless")  
-    return Chrome(service=Service(ChromeDriverManager(driver_version="130.0.6723.92").install()), options=options)
+from src.utils import paths
+from src.utils.driver_factory import create_chrome_driver
+from src.services.datacenter import DataCenter
+from src.services.grabtickets import GrabTickets
+
 
 def main() -> None:
-    config = data_center.get_config()
-    driver = get_web_deriver(config)
-    login_page_url = "https://tixcraft.com/login"
-    driver.get(login_page_url)
-    input("請完成登入後，按下 'Enter' 開始執行程序")
+    load_dotenv(paths.env_path())
 
-    # 操作執行
-    operate = 'r'
-    while True:
-        match(operate):
-            case 'r':
+    data_center = DataCenter()
+    grab_tickets = GrabTickets()
+    config = data_center.get_config()
+
+    driver = create_chrome_driver(headless=False)
+    try:
+        driver.get("https://tixcraft.com/login")
+        input("請完成登入後，按下 Enter 開始執行")
+
+        operate = "r"
+        while True:
+            if operate == "r":
                 grab_tickets.start(driver, config)
-            case 'q':
+            elif operate == "q":
                 break
-        operate = input((
-            "輸入'q'中止程序\n"
-            "輸入'r'再次嘗試\n"
-            ":"
-        )).strip()
-    
-    # 關閉 driver
-    driver.quit()
+            operate = input(
+                "輸入 'q' 中止程序\n"
+                "輸入 'r' 再次嘗試\n"
+                ":"
+            ).strip()
+    finally:
+        driver.quit()
 
 
 if __name__ == "__main__":

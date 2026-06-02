@@ -37,6 +37,12 @@ datas += [
     (str(PROJECT_ROOT / "build" / "icons" / "icon.png"), "."),
 ]
 
+# auth.json holds the password hash. It's gitignored — CI writes it from the
+# AUTH_PASSWORD_HASH secret before invoking PyInstaller (see release.yml).
+_auth_file = PROJECT_ROOT / "auth.json"
+if _auth_file.exists():
+    datas.append((str(_auth_file), "."))
+
 ICON_ICNS = str(PROJECT_ROOT / "build" / "icons" / "icon.icns")
 ICON_ICO = str(PROJECT_ROOT / "build" / "icons" / "icon.ico")
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
 import hashlib
-import json
-import os
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -9,38 +7,14 @@ from PySide6.QtWidgets import (
     QCheckBox,
 )
 
-from ...utils import paths
 
-
+_PASSWORD_SHA256 = "30fa18a448f91d5558499fcf9e5c8fccf9f736b31d874629f38cd65f8feedcee"
 _MAX_ATTEMPTS = 5
-_AUTH_FILE = "auth.json"
-
-
-def _load_password_hash() -> str:
-    """Load the expected SHA-256 hash from (in order):
-    1. env var AUTH_PASSWORD_HASH (for CI)
-    2. bundled / dev-tree auth.json (gitignored)
-    Returns empty string if missing -> verify() will always fail."""
-    env = os.environ.get("AUTH_PASSWORD_HASH", "").strip().lower()
-    if env:
-        return env
-    try:
-        path = paths.find_resource(_AUTH_FILE)
-        if path and path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return str(data.get("password_sha256", "")).strip().lower()
-    except Exception:
-        pass
-    return ""
 
 
 def verify(password: str) -> bool:
-    expected = _load_password_hash()
-    if not expected:
-        return False
     cleaned = password.strip().strip("　")
-    return hashlib.sha256(cleaned.encode("utf-8")).hexdigest().lower() == expected
+    return hashlib.sha256(cleaned.encode("utf-8")).hexdigest() == _PASSWORD_SHA256
 
 
 class AuthDialog(QDialog):

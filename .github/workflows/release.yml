@@ -75,17 +75,6 @@ jobs:
           PY
           cat version.json
 
-      - name: Write auth.json from secret
-        shell: bash
-        env:
-          AUTH_PASSWORD_HASH: ${{ secrets.AUTH_PASSWORD_HASH }}
-        run: |
-          if [ -z "$AUTH_PASSWORD_HASH" ]; then
-            echo "ERROR: AUTH_PASSWORD_HASH secret not set; aborting build." >&2
-            exit 1
-          fi
-          python -c "import json,os; json.dump({'password_sha256': os.environ['AUTH_PASSWORD_HASH']}, open('auth.json','w'))"
-
       - name: Fetch Chrome for Testing
         shell: bash
         run: python build/fetch_chrome.py --platform ${{ matrix.chrome_plat }}

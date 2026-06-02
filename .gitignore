@@ -19,8 +19,6 @@ build/work/
 .env
 .env.*
 !.env.example
-auth.json
-secrets/
 
 # OS
 .DS_Store
